@@ -21,18 +21,23 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(hardware_communication_lib REQUIRED)
 
-#add_executable(jg35fd_driver_node
-#  src/jg35fd_driver_node.cc
-#  src/jg35fd_driver.cc
-#)
-#ament_target_dependencies(talker
-#  rclcpp
-#  std_msgs
-#)
+add_executable(node
+  src/driver.cc
+  src/node.cc
+)
+ament_target_dependencies(node
+  rclcpp
+  hardware_communication_lib
+)
+target_include_directories(node
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
-#install(TARGETS
-#  talker
-#  DESTINATION lib/${PROJECT_NAME}
-#)
+install(
+  TARGETS node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()

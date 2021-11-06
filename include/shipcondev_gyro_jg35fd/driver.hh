@@ -16,7 +16,7 @@ namespace shipcon::device
   {
     /* Constants */
     private:
-      constexpr static int BAUDRATE = 9615;
+      const int BAUDRATE = 9600;
       enum TxInterval{
         once = 0x30,
         _20ms = 0x32,
@@ -38,11 +38,13 @@ namespace shipcon::device
     private:
       bool initSerial( void );
       bool startSerial( void );
-      void callback_receiveSerial( const boost::system::error_code& ec, std::size_t recvsize, std::string& data );
+      void callback_sendSerial( const boost::system::error_code& ec, std::size_t sendsize );
+      void callback_receiveSerial( const boost::system::error_code& ec, std::size_t recvsize );
 
     /* Private Member Objects*/
     private:
       std::unique_ptr<hwcomlib::SerialCom> serialif_;
+      char buffer_[8];
   };
 }
 
