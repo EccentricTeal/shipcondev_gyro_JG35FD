@@ -7,12 +7,12 @@ namespace shipcon::device
   {
     if ( initSerial() ){ serialif_->run(); }
 
-    char buf[5];
-    buf[0] = 0x02;
-    buf[1] = static_cast<char>(0x81);
-    buf[2] = 0x32;
-    buf[3] = static_cast<char>(0xb3);
-    buf[4] = 0x0d;
+    std::vector<unsigned char> buf;
+    buf.push_back(0x02);
+    buf.push_back(0x81);
+    buf.push_back(0x35);
+    buf.push_back(0xb6);
+    buf.push_back(0x0d);
     serialif_->dispatchSend(
       buf,
       std::bind(
@@ -23,8 +23,10 @@ namespace shipcon::device
       )
     );
 
-    serialif_->dispatchRecv(
-      buffer_,
+    //recv_buffer_.clear();
+    serialif_->dispatchRecvUntil(
+      recv_buffer_,
+      "\r",
       std::bind(
         &GyroJaeJG35FD::callback_receiveSerial,
         this,
@@ -67,8 +69,31 @@ namespace shipcon::device
 
   void GyroJaeJG35FD::callback_receiveSerial( const boost::system::error_code& ec, std::size_t recvsize )
   {
-    std::cout << std::dec << recvsize << std::endl;
-    std::cout << std::hex << "0x" << buffer_[0] << " 0x" << buffer_[1] << " 0x" << buffer_[2] << " 0x" << buffer_[3] << std::endl; 
+    std::cout << "Received:" << recvsize << std::endl;
+    unsigned char array[8];
+    std::istream istr(&recv_buffer_);
+
+    istr >> array[0] >> array[1] >> array[2] >> array[3] >> array[4] >> array[5] >> array[6];
+    std::cout << "0x" << std::hex << static_cast<int>(array[0]) << " ";
+    std::cout << "0x" << std::hex << static_cast<int>(array[1]) << " ";
+    std::cout << "0x" << std::hex << static_cast<int>(array[2]) << " ";
+    std::cout << "0x" << std::hex << static_cast<int>(array[3]) << " ";
+    std::cout << "0x" << std::hex << static_cast<int>(array[4]) << " ";
+    std::cout << "0x" << std::hex << static_cast<int>(array[5]) << " ";
+    std::cout << "0x" << std::hex << static_cast<int>(array[6]) << " ";
+    std::cout << std::endl;
+    
+    
+    serialif_->dispatchRecvUntil(
+      recv_buffer_,
+      "\r",
+      std::bind(
+        &GyroJaeJG35FD::callback_receiveSerial,
+        this,
+        std::placeholders::_1,
+        std::placeholders::_2
+      )
+    );
   }
 
 

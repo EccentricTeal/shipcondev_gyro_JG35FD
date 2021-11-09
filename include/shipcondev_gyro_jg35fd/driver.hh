@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <iostream>
+#include <boost/asio.hpp>
 
 namespace shipcon::device
 {
@@ -44,7 +45,7 @@ namespace shipcon::device
     /* Private Member Objects*/
     private:
       std::unique_ptr<hwcomlib::SerialCom> serialif_;
-      char buffer_[8];
+      boost::asio::streambuf recv_buffer_;
   };
 }
 
