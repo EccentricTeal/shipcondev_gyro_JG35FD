@@ -10,6 +10,7 @@
 #include <string>
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/regex.hpp>
 
 namespace shipcon::device
 {
@@ -29,6 +30,7 @@ namespace shipcon::device
         _1000ms = 0x38,
         stop = 0x39
       };
+      boost::regex REGEX_CONDITION = boost::regex("\x02[0x00-0xff]{5}\r");
 
     /* Constructor, Destructor */
     public:

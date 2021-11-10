@@ -69,24 +69,24 @@ namespace shipcon::device
 
   void GyroJaeJG35FD::callback_receiveSerial( const boost::system::error_code& ec, std::size_t recvsize )
   {
-    std::cout << "Received:" << recvsize << std::endl;
-    unsigned char array[8];
-    std::istream istr(&recv_buffer_);
+    std::cout << "Received:" << std::dec << recvsize << std::endl;
+    std::istream istr( &recv_buffer_ );
+    std::vector<unsigned char> value;
 
-    istr >> array[0] >> array[1] >> array[2] >> array[3] >> array[4] >> array[5] >> array[6];
-    std::cout << "0x" << std::hex << static_cast<int>(array[0]) << " ";
-    std::cout << "0x" << std::hex << static_cast<int>(array[1]) << " ";
-    std::cout << "0x" << std::hex << static_cast<int>(array[2]) << " ";
-    std::cout << "0x" << std::hex << static_cast<int>(array[3]) << " ";
-    std::cout << "0x" << std::hex << static_cast<int>(array[4]) << " ";
-    std::cout << "0x" << std::hex << static_cast<int>(array[5]) << " ";
-    std::cout << "0x" << std::hex << static_cast<int>(array[6]) << " ";
+    while( istr )
+    {
+      value.push_back( istr.get() );
+      if( *( value.end()-1 ) == 0x0d ){ break; }
+    }
+    for( auto itr = value.begin(); itr!=value.end(); ++itr)
+    {
+      std::cout << "0x" << std::hex << static_cast<int>(*itr) << " ";
+    }
     std::cout << std::endl;
-    
     
     serialif_->dispatchRecvUntil(
       recv_buffer_,
-      "\r",
+      REGEX_CONDITION,
       std::bind(
         &GyroJaeJG35FD::callback_receiveSerial,
         this,

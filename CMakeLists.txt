@@ -20,6 +20,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(hardware_communication_lib REQUIRED)
+find_package(Boost REQUIRED COMPONENTS regex )
 
 add_executable(node
   src/driver.cc
@@ -28,6 +29,7 @@ add_executable(node
 ament_target_dependencies(node
   rclcpp
   hardware_communication_lib
+  Boost
 )
 target_include_directories(node
   PUBLIC
