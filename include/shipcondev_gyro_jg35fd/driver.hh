@@ -30,7 +30,7 @@ namespace shipcon::device
         _1000ms = 0x38,
         stop = 0x39
       };
-      boost::regex REGEX_CONDITION = boost::regex("\x02[0x00-0xff]{5}\r");
+      //boost::regex REGEX_CONDITION = boost::regex("\x02\x81[\x01-\xff]{4}\r");
 
     /* Constructor, Destructor */
     public:
@@ -46,8 +46,13 @@ namespace shipcon::device
 
     /* Private Member Objects*/
     private:
+      //Communication
       std::unique_ptr<hwcomlib::SerialCom> serialif_;
+      //Buffers
       boost::asio::streambuf recv_buffer_;
+      std::vector<unsigned char> data_buffer_0x81_;
+      //Data
+      double yaw_angle_;
   };
 }
 

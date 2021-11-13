@@ -6,6 +6,8 @@ namespace shipcon::device
   rclcpp::Node( node_name, name_space )
   {
     if ( initSerial() ){ serialif_->run(); }
+    data_buffer_.clear();
+    yaw_angle_ = 0.0;
 
     std::vector<unsigned char> buf;
     buf.push_back(0x02);
@@ -24,9 +26,8 @@ namespace shipcon::device
     );
 
     //recv_buffer_.clear();
-    serialif_->dispatchRecvUntil(
+    serialif_->dispatchRecv(
       recv_buffer_,
-      "\r",
       std::bind(
         &GyroJaeJG35FD::callback_receiveSerial,
         this,
@@ -71,22 +72,34 @@ namespace shipcon::device
   {
     std::cout << "Received:" << std::dec << recvsize << std::endl;
     std::istream istr( &recv_buffer_ );
-    std::vector<unsigned char> value;
 
-    while( istr )
+    while( istr ){ if( istr.get() == 0x02 ){ break; } }
+    if( istr )
     {
-      value.push_back( istr.get() );
-      if( *( value.end()-1 ) == 0x0d ){ break; }
+      unsigned char id = istr.get();
+
+      if( id == 0x81 )
+      {
+        
+      }
     }
-    for( auto itr = value.begin(); itr!=value.end(); ++itr)
+    auto itr_stx = std::find( data_buffer_.begin(), data_buffer_.end(), 0x02 );
+    if( itr_stx != data_buffer_.end() && std::next( itr_stx ) != data_buffer_.end() )
+    {
+      switch( *( std::next( itr_stx ) ) )
+      {
+        case 0x81:
+
+      }
+    }
+    /*for( auto itr = data_buffer_.begin(); itr!=data_buffer_.end(); ++itr )
     {
       std::cout << "0x" << std::hex << static_cast<int>(*itr) << " ";
     }
-    std::cout << std::endl;
+    std::cout << std::endl;*/
     
-    serialif_->dispatchRecvUntil(
+   serialif_->dispatchRecv(
       recv_buffer_,
-      REGEX_CONDITION,
       std::bind(
         &GyroJaeJG35FD::callback_receiveSerial,
         this,
