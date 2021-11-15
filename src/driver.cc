@@ -9,14 +9,14 @@ namespace shipcon::device
     data_buffer_.clear();
     yaw_angle_ = 0.0;
 
-    std::vector<unsigned char> buf;
-    buf.push_back(0x02);
-    buf.push_back(0x81);
-    buf.push_back(0x35);
-    buf.push_back(0xb6);
-    buf.push_back(0x0d);
+    auto send_buffer_ = std::make_shared<std::vector<unsigned char>>();
+    send_buffer_->push_back(0x02);
+    send_buffer_->push_back(0x83);
+    send_buffer_->push_back(0x35);
+    send_buffer_->push_back(0xb8);
+    send_buffer_->push_back(0x0d);
     serialif_->dispatchSend(
-      buf,
+      send_buffer_,
       std::bind(
         &GyroJaeJG35FD::callback_sendSerial,
         this,
@@ -25,7 +25,6 @@ namespace shipcon::device
       )
     );
 
-    //recv_buffer_.clear();
     serialif_->dispatchRecvUntil(
       recv_buffer_,
       REGEX_CONDITION_HEADER,
@@ -65,15 +64,15 @@ namespace shipcon::device
 
   void GyroJaeJG35FD::callback_sendSerial( const boost::system::error_code& ec, std::size_t sendsize )
   {
-    std::cout << std::dec << sendsize << std::endl;
+    //std::cout << std::dec << sendsize << std::endl;
   }
 
 
   void GyroJaeJG35FD::callback_receive_header( const boost::system::error_code& ec, std::size_t recvsize )
   {
-    std::cout << "Received Header:" << std::dec << recvsize << std::endl;
     std::istream istr( &recv_buffer_ );
 
+    //Set header data(1 or 2 bytes) from istream 
     if( recvsize == 1 )
     {
       data_buffer_.push_back( istr.get() );
@@ -85,16 +84,13 @@ namespace shipcon::device
       while( istr ){ temp.push_back( istr.get() ); }
       
       data_buffer_.clear();
-      //istr.seekg( -1, std::ios_base::end );
       data_buffer_.push_back( *( temp.end() - 3 ) ); //0x02
       data_buffer_.push_back( *( temp.end() - 2 ) ); //0x81-0x84
-      //recv_buffer_.consume( recv_buffer_.size() );
+      //Last istream byte( temp.end()-1 ) is 0xff
     }
     
-    std::cout << "0x" << std::hex << static_cast<int>(data_buffer_[0]) << " ";
-    std::cout << "0x" << std::hex << static_cast<int>(data_buffer_[1]) << std::endl;
-
-    
+    //Receiving remaining data packet
+    //0x81, 0x82 or 0x84 message contains 2byte data
     if( data_buffer_[1] == 0x81 || data_buffer_[1] == 0x82 || data_buffer_[1] == 0x84 )
     {
       serialif_->dispatchRecvSize(
@@ -109,6 +105,7 @@ namespace shipcon::device
         )
       );
     }
+    //0x83 message contains 4byte data
     else if( data_buffer_[1] == 0x83 )
     {
       serialif_->dispatchRecvSize(
@@ -123,6 +120,8 @@ namespace shipcon::device
         )
       );
     }
+    //If next 0x02 data is not 0x81-0x84, this 0x02 is not indicator of STX of header
+    //So, read until header again. This case is only in an error.
     else
     {
       serialif_->dispatchRecvUntil(
@@ -138,11 +137,13 @@ namespace shipcon::device
     }
   }
 
+
   void GyroJaeJG35FD::callback_receive_data( const boost::system::error_code& ec, std::size_t recvsize, unsigned int datasize )
   {
-    std::cout << "Received Data:" << std::dec << recvsize << std::endl;
     std::istream istr( &recv_buffer_ );
-
+        
+    //This callback functions receive only 5 or 7 bytes normally.
+    //In case receiving the other number of data, it is error, so going back to header receive process
     if( recvsize != datasize + 3 )
     {
       serialif_->dispatchRecvUntil(
@@ -158,23 +159,19 @@ namespace shipcon::device
       return;
     }
 
-
+    //receive data (discard final 0xff of istream)
     for( int cnt = 2; cnt < ( 2 + recvsize ); cnt++ ){ data_buffer_.push_back( istr.get() ); }
     recv_buffer_.consume( recv_buffer_.size() );
 
-    for( auto itr = data_buffer_.begin(); itr!=data_buffer_.end(); ++itr )
-    {
-      int data = static_cast<int>(*itr);
-      std::cout << "0x" << std::hex << data << " ";
-    }
-    std::cout << std::endl;
-
-
+    //Evaluate final byte whether 0x0d or not
+    //In case the header got previous process is true header, update data variable.
     if( *( std::prev( data_buffer_.end() ) ) == 0x0d )//in case received header is true header
     {
+      
       updateData();
     }
-    else //in case received header is just a part of data
+    //In case received header is just a part of data
+    else
     {
       //Find next header 0x02 + 0x81-0x84
       auto itr = data_buffer_.begin()+2; //From next "not true header"
@@ -182,6 +179,7 @@ namespace shipcon::device
       {
         itr = std::find( itr, data_buffer_.end(), 0x02 );
 
+        //Not found
         if( itr == data_buffer_.end() )
         {
           serialif_->dispatchRecvUntil(
@@ -196,6 +194,7 @@ namespace shipcon::device
           );
           break;
         }
+        //Found 0x02 in the end of buffer
         else if( itr == data_buffer_.end() - 1 )
         {
           data_buffer_.clear();
@@ -212,6 +211,7 @@ namespace shipcon::device
           );
           break;
         }
+        //Found 0x02 not in the end of buffer
         else
         {
           if( *( std::next( itr ) ) == 0x81 || *( std::next( itr ) ) == 0x82 || *( std::next( itr ) ) == 0x84 )
@@ -261,6 +261,7 @@ namespace shipcon::device
             );
           }
           else{;}
+
           break;
         }
       }
@@ -272,14 +273,30 @@ namespace shipcon::device
 
   void GyroJaeJG35FD::updateData( void )
   {
-    std::cout << "Update" << std::endl;
-    for( auto itr = data_buffer_.begin(); itr != data_buffer_.end(); ++itr)
+    uint16_t angle = 0;
+    int16_t rate = 0;
+
+    if( data_buffer_[1] == 0x81 )
     {
-      int data = static_cast<int>( *itr );
-      std::cout << "0x" << std::hex << data << " ";
+      angle = static_cast<uint16_t>( data_buffer_[3] << 8 ) + data_buffer_[4];
+
+      std::lock_guard<std::mutex> lock(mtx_);
+      yaw_angle_ = static_cast<double>( angle ) / static_cast<double>( 0xffff ) * M_PI * 2;
     }
-    std::cout << std::endl;
+    else if( data_buffer_[1] == 0x83)
+    {
+      angle = static_cast<uint16_t>( data_buffer_[3] << 8 ) + data_buffer_[4];
+      rate = static_cast<int16_t>( data_buffer_[5] << 8 ) + data_buffer_[6];
+
+      std::lock_guard<std::mutex> lock(mtx_);
+      yaw_angle_ = static_cast<double>( angle ) / static_cast<double>( 0xffff ) * M_PI * 2.0 ;
+      yaw_rate_ = static_cast<double>( rate ) / static_cast<double>( 0x7fff ) * deg2rad( 200.0 );
+    }
+  
     data_buffer_.clear();
+
+    std::cout << "Yaw angle is " << yaw_angle_ << " rad" << std::endl;
+    std::cout << "Yaw rate is " << yaw_rate_ << " rad/s" << std::endl;
 
     serialif_->dispatchRecvUntil(
       recv_buffer_,

@@ -9,8 +9,10 @@
 #include <memory>
 #include <string>
 #include <iostream>
-#include <array>
+#include <iomanip>
+#include <mutex>
 #include <vector>
+#include <cmath>
 #include <utility>
 #include <boost/asio.hpp>
 #include <boost/regex.hpp>
@@ -48,6 +50,7 @@ namespace shipcon::device
       void callback_receive_header( const boost::system::error_code& ec, std::size_t recvsize );
       void callback_receive_data( const boost::system::error_code& ec, std::size_t recvsize, unsigned int datasize );
       void updateData( void );
+      double deg2rad( double deg ){ return deg / 360.0 * M_PI * 2.0; };
 
     /* Private Member Objects*/
     private:
@@ -58,6 +61,9 @@ namespace shipcon::device
       std::vector<unsigned char> data_buffer_;
       //Data
       double yaw_angle_;
+      double yaw_rate_;
+      //Utility
+      std::mutex mtx_;
   };
 }
 
