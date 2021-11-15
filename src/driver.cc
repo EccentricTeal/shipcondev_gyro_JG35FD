@@ -26,10 +26,11 @@ namespace shipcon::device
     );
 
     //recv_buffer_.clear();
-    serialif_->dispatchRecv(
+    serialif_->dispatchRecvUntil(
       recv_buffer_,
+      REGEX_CONDITION_HEADER,
       std::bind(
-        &GyroJaeJG35FD::callback_receiveSerial,
+        &GyroJaeJG35FD::callback_receive_header,
         this,
         std::placeholders::_1,
         std::placeholders::_2
@@ -68,40 +69,223 @@ namespace shipcon::device
   }
 
 
-  void GyroJaeJG35FD::callback_receiveSerial( const boost::system::error_code& ec, std::size_t recvsize )
+  void GyroJaeJG35FD::callback_receive_header( const boost::system::error_code& ec, std::size_t recvsize )
   {
-    std::cout << "Received:" << std::dec << recvsize << std::endl;
+    std::cout << "Received Header:" << std::dec << recvsize << std::endl;
     std::istream istr( &recv_buffer_ );
 
-    while( istr ){ if( istr.get() == 0x02 ){ break; } }
-    if( istr )
+    if( recvsize == 1 )
     {
-      unsigned char id = istr.get();
-
-      if( id == 0x81 )
-      {
-        
-      }
+      data_buffer_.push_back( istr.get() );
     }
-    auto itr_stx = std::find( data_buffer_.begin(), data_buffer_.end(), 0x02 );
-    if( itr_stx != data_buffer_.end() && std::next( itr_stx ) != data_buffer_.end() )
+    else
     {
-      switch( *( std::next( itr_stx ) ) )
-      {
-        case 0x81:
-
-      }
+      std::vector<unsigned char> temp;
+      temp.clear();
+      while( istr ){ temp.push_back( istr.get() ); }
+      
+      data_buffer_.clear();
+      //istr.seekg( -1, std::ios_base::end );
+      data_buffer_.push_back( *( temp.end() - 3 ) ); //0x02
+      data_buffer_.push_back( *( temp.end() - 2 ) ); //0x81-0x84
+      //recv_buffer_.consume( recv_buffer_.size() );
     }
-    /*for( auto itr = data_buffer_.begin(); itr!=data_buffer_.end(); ++itr )
-    {
-      std::cout << "0x" << std::hex << static_cast<int>(*itr) << " ";
-    }
-    std::cout << std::endl;*/
     
-   serialif_->dispatchRecv(
+    std::cout << "0x" << std::hex << static_cast<int>(data_buffer_[0]) << " ";
+    std::cout << "0x" << std::hex << static_cast<int>(data_buffer_[1]) << std::endl;
+
+    
+    if( data_buffer_[1] == 0x81 || data_buffer_[1] == 0x82 || data_buffer_[1] == 0x84 )
+    {
+      serialif_->dispatchRecvSize(
+        recv_buffer_,
+        5,
+        std::bind(
+          &GyroJaeJG35FD::callback_receive_data,
+          this,
+          std::placeholders::_1,
+          std::placeholders::_2,
+          2
+        )
+      );
+    }
+    else if( data_buffer_[1] == 0x83 )
+    {
+      serialif_->dispatchRecvSize(
+        recv_buffer_,
+        7,
+        std::bind(
+          &GyroJaeJG35FD::callback_receive_data,
+          this,
+          std::placeholders::_1,
+          std::placeholders::_2,
+          4
+        )
+      );
+    }
+    else
+    {
+      serialif_->dispatchRecvUntil(
       recv_buffer_,
+      REGEX_CONDITION_HEADER,
       std::bind(
-        &GyroJaeJG35FD::callback_receiveSerial,
+        &GyroJaeJG35FD::callback_receive_header,
+        this,
+        std::placeholders::_1,
+        std::placeholders::_2
+      )
+    );
+    }
+  }
+
+  void GyroJaeJG35FD::callback_receive_data( const boost::system::error_code& ec, std::size_t recvsize, unsigned int datasize )
+  {
+    std::cout << "Received Data:" << std::dec << recvsize << std::endl;
+    std::istream istr( &recv_buffer_ );
+
+    if( recvsize != datasize + 3 )
+    {
+      serialif_->dispatchRecvUntil(
+        recv_buffer_,
+        REGEX_CONDITION_HEADER,
+        std::bind(
+          &GyroJaeJG35FD::callback_receive_header,
+          this,
+          std::placeholders::_1,
+          std::placeholders::_2
+        )
+      );
+      return;
+    }
+
+
+    for( int cnt = 2; cnt < ( 2 + recvsize ); cnt++ ){ data_buffer_.push_back( istr.get() ); }
+    recv_buffer_.consume( recv_buffer_.size() );
+
+    for( auto itr = data_buffer_.begin(); itr!=data_buffer_.end(); ++itr )
+    {
+      int data = static_cast<int>(*itr);
+      std::cout << "0x" << std::hex << data << " ";
+    }
+    std::cout << std::endl;
+
+
+    if( *( std::prev( data_buffer_.end() ) ) == 0x0d )//in case received header is true header
+    {
+      updateData();
+    }
+    else //in case received header is just a part of data
+    {
+      //Find next header 0x02 + 0x81-0x84
+      auto itr = data_buffer_.begin()+2; //From next "not true header"
+      for( ; itr != data_buffer_.end(); ++itr )
+      {
+        itr = std::find( itr, data_buffer_.end(), 0x02 );
+
+        if( itr == data_buffer_.end() )
+        {
+          serialif_->dispatchRecvUntil(
+            recv_buffer_,
+            REGEX_CONDITION_HEADER,
+            std::bind(
+              &GyroJaeJG35FD::callback_receive_header,
+              this,
+              std::placeholders::_1,
+              std::placeholders::_2
+            )
+          );
+          break;
+        }
+        else if( itr == data_buffer_.end() - 1 )
+        {
+          data_buffer_.clear();
+          data_buffer_.push_back( *itr );
+          serialif_->dispatchRecvSize(
+            recv_buffer_,
+            1,
+            std::bind(
+              &GyroJaeJG35FD::callback_receive_header,
+              this,
+              std::placeholders::_1,
+              std::placeholders::_2
+            )
+          );
+          break;
+        }
+        else
+        {
+          if( *( std::next( itr ) ) == 0x81 || *( std::next( itr ) ) == 0x82 || *( std::next( itr ) ) == 0x84 )
+          {
+            std::vector<unsigned char> tempv;
+            tempv.clear();
+            for( ; itr != data_buffer_.end(); ++itr )
+            {
+              tempv.push_back( *itr );
+            }
+            data_buffer_.clear();
+            std::copy( tempv.begin(), tempv.end(), data_buffer_.begin() );
+
+            serialif_->dispatchRecvSize(
+              recv_buffer_,
+              ( 7 - data_buffer_.size() ),
+              std::bind(
+                &GyroJaeJG35FD::callback_receive_data,
+                this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                2
+              )
+            );
+          }
+          else if( *( std::next( itr ) ) == 0x83 )
+          {
+            std::vector<unsigned char> tempv;
+            tempv.clear();
+            for( ; itr != data_buffer_.end(); ++itr )
+            {
+              tempv.push_back( *itr );
+            }
+            data_buffer_.clear();
+            std::copy( tempv.begin(), tempv.end(), data_buffer_.begin() );
+
+            serialif_->dispatchRecvSize(
+              recv_buffer_,
+              ( 9 - data_buffer_.size() ),
+              std::bind(
+                &GyroJaeJG35FD::callback_receive_data,
+                this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                4
+              )
+            );
+          }
+          else{;}
+          break;
+        }
+      }
+
+    }
+
+  }
+
+
+  void GyroJaeJG35FD::updateData( void )
+  {
+    std::cout << "Update" << std::endl;
+    for( auto itr = data_buffer_.begin(); itr != data_buffer_.end(); ++itr)
+    {
+      int data = static_cast<int>( *itr );
+      std::cout << "0x" << std::hex << data << " ";
+    }
+    std::cout << std::endl;
+    data_buffer_.clear();
+
+    serialif_->dispatchRecvUntil(
+      recv_buffer_,
+      REGEX_CONDITION_HEADER,
+      std::bind(
+        &GyroJaeJG35FD::callback_receive_header,
         this,
         std::placeholders::_1,
         std::placeholders::_2

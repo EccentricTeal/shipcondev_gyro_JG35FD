@@ -9,6 +9,9 @@
 #include <memory>
 #include <string>
 #include <iostream>
+#include <array>
+#include <vector>
+#include <utility>
 #include <boost/asio.hpp>
 #include <boost/regex.hpp>
 
@@ -30,7 +33,7 @@ namespace shipcon::device
         _1000ms = 0x38,
         stop = 0x39
       };
-      //boost::regex REGEX_CONDITION = boost::regex("\x02\x81[\x01-\xff]{4}\r");
+      boost::regex REGEX_CONDITION_HEADER = boost::regex("\x02[\x81-\x84]");
 
     /* Constructor, Destructor */
     public:
@@ -42,7 +45,9 @@ namespace shipcon::device
       bool initSerial( void );
       bool startSerial( void );
       void callback_sendSerial( const boost::system::error_code& ec, std::size_t sendsize );
-      void callback_receiveSerial( const boost::system::error_code& ec, std::size_t recvsize );
+      void callback_receive_header( const boost::system::error_code& ec, std::size_t recvsize );
+      void callback_receive_data( const boost::system::error_code& ec, std::size_t recvsize, unsigned int datasize );
+      void updateData( void );
 
     /* Private Member Objects*/
     private:
@@ -50,7 +55,7 @@ namespace shipcon::device
       std::unique_ptr<hwcomlib::SerialCom> serialif_;
       //Buffers
       boost::asio::streambuf recv_buffer_;
-      std::vector<unsigned char> data_buffer_0x81_;
+      std::vector<unsigned char> data_buffer_;
       //Data
       double yaw_angle_;
   };
