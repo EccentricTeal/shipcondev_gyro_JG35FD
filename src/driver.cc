@@ -278,25 +278,44 @@ namespace shipcon::device
 
     if( data_buffer_[1] == 0x81 )
     {
-      angle = static_cast<uint16_t>( data_buffer_[3] << 8 ) + data_buffer_[4];
+      uint8_t checksum = static_cast<uint8_t>( data_buffer_[1] + data_buffer_[2] + data_buffer_[3] + data_buffer_[4]);
+      if( checksum == data_buffer_[5] )
+      {
+        angle = static_cast<uint16_t>( data_buffer_[3] << 8 ) + data_buffer_[4];
 
-      std::lock_guard<std::mutex> lock(mtx_);
-      yaw_angle_ = static_cast<double>( angle ) / static_cast<double>( 0xffff ) * M_PI * 2;
+        std::lock_guard<std::mutex> lock(mtx_);
+        yaw_angle_ = static_cast<double>( angle ) / static_cast<double>( 0xffff ) * M_PI * 2;
+      }
+    }
+    else if( data_buffer_[1] == 0x82)
+    {
+      uint8_t checksum = static_cast<uint8_t>( data_buffer_[1] + data_buffer_[2] + data_buffer_[3] + data_buffer_[4]);
+      if( checksum == data_buffer_[5] )
+      {
+        rate = static_cast<int16_t>( data_buffer_[3] << 8 ) + data_buffer_[4];
+
+        std::lock_guard<std::mutex> lock(mtx_);
+        yaw_rate_ = static_cast<double>( rate ) / static_cast<double>( 0x7fff ) * deg2rad( 200.0 );
+      }
     }
     else if( data_buffer_[1] == 0x83)
     {
-      angle = static_cast<uint16_t>( data_buffer_[3] << 8 ) + data_buffer_[4];
-      rate = static_cast<int16_t>( data_buffer_[5] << 8 ) + data_buffer_[6];
+      uint8_t checksum = static_cast<uint8_t>( data_buffer_[1] + data_buffer_[2] + data_buffer_[3] + data_buffer_[4] + data_buffer_[5] + data_buffer_[6]);
+      if( checksum == data_buffer_[7] )
+      {
+        angle = static_cast<uint16_t>( data_buffer_[3] << 8 ) + data_buffer_[4];
+        rate = static_cast<int16_t>( data_buffer_[5] << 8 ) + data_buffer_[6];
 
-      std::lock_guard<std::mutex> lock(mtx_);
-      yaw_angle_ = static_cast<double>( angle ) / static_cast<double>( 0xffff ) * M_PI * 2.0 ;
-      yaw_rate_ = static_cast<double>( rate ) / static_cast<double>( 0x7fff ) * deg2rad( 200.0 );
+        std::lock_guard<std::mutex> lock(mtx_);
+        yaw_angle_ = static_cast<double>( angle ) / static_cast<double>( 0xffff ) * M_PI * 2.0 ;
+        yaw_rate_ = static_cast<double>( rate ) / static_cast<double>( 0x7fff ) * deg2rad( 200.0 );
+      }
     }
   
     data_buffer_.clear();
 
-    std::cout << "Yaw angle is " << yaw_angle_ << " rad" << std::endl;
-    std::cout << "Yaw rate is " << yaw_rate_ << " rad/s" << std::endl;
+    std::cout << "Yaw angle is " << std::fixed << std::setprecision(6) << yaw_angle_ << " rad" << std::endl;
+    std::cout << "Yaw rate is " << std::fixed << std::setprecision(6) << yaw_rate_ << " rad/s" << std::endl;
 
     serialif_->dispatchRecvUntil(
       recv_buffer_,
