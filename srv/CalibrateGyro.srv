@@ -1,0 +1,4 @@
+---
+int8 result
+int8 RESULT_FAIL = -1
+int8 RESULT_DONE = 0

@@ -1,0 +1,12 @@
+uint8 target_data
+uint8 YAW_DATA = 1
+uint8 YAWRATE_DATA = 0
+
+uint8 range
+uint8 RANGE_10DEG = 1
+uint8 RANGE_20DEG = 2
+uint8 RANGE_45DEG = 3
+uint8 RANGE_90DEG = 4
+uint8 RANGE_180DEG = 5
+---
+uint8 new_range

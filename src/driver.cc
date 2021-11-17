@@ -5,7 +5,32 @@ namespace shipcon::device
   GyroJaeJG35FD::GyroJaeJG35FD( std::string node_name, std::string name_space ):
   rclcpp::Node( node_name, name_space )
   {
+    //init ROS Service
+    srv_control_output_ = create_service<shipcondev_gyro_jg35fd::srv::ControlOutput>(
+      srvname_control_output_,
+      &GyroJaeJG35FD::callback_srv_control_output
+    );
+    srv_calibrate_gyro_ = create_service<shipcondev_gyro_jg35fd::srv::CalibrateGyro>(
+      srvname_calibrate_gyro_,
+      &GyroJaeJG35FD::callback_srv_calibrate_gyro
+    );
+    srv_control_calculate_ = create_service<shipcondev_gyro_jg35fd::srv::ControlCalculate>(
+      srvname_control_calculate_,
+      &GyroJaeJG35FD::callback_srv_control_calculate
+    );
+    srv_reset_angle_ = create_service<shipcondev_gyro_jg35fd::srv::ResetAngle>(
+      srvname_reset_angle_,
+      &GyroJaeJG35FD::callback_srv_reset_angle
+    );
+    srv_set_analog_range_ = create_service<shipcondev_gyro_jg35fd::srv::SetAnalogRange>(
+      srvname_set_analog_range_,
+      &GyroJaeJG35FD::callback_srv_set_analog_range
+    );
+
+    //init serial device
     if ( initSerial() ){ serialif_->run(); }
+
+    //init data variables
     data_buffer_.clear();
     yaw_angle_ = 0.0;
 
@@ -327,6 +352,56 @@ namespace shipcon::device
         std::placeholders::_2
       )
     );
+  }
+
+
+  void GyroJaeJG35FD::callback_srv_control_output(
+    const std::shared_ptr<rmw_request_id_t> req_header,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Request> req,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Response> res
+  )
+  {
+
+  }
+
+
+  void GyroJaeJG35FD::callback_srv_calibrate_gyro(
+    const std::shared_ptr<rmw_request_id_t> req_header,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Request> req,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Response> res
+  )
+  {
+
+  }
+
+
+  void GyroJaeJG35FD::callback_srv_control_calculate(
+    const std::shared_ptr<rmw_request_id_t> req_header,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlCalculate_Request> req,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlCalculate_Response> res
+  )
+  {
+
+  }
+
+
+  void GyroJaeJG35FD::callback_srv_reset_angle(
+    const std::shared_ptr<rmw_request_id_t> req_header,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ResetAngle_Request> req,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ResetAngle_Response> res
+  )
+  {
+
+  }
+
+
+  void GyroJaeJG35FD::callback_srv_set_analog_range(
+    const std::shared_ptr<rmw_request_id_t> req_header,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::SetAnalogRange_Request> req,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::SetAnalogRange_Response> res
+  )
+  {
+    
   }
 
 

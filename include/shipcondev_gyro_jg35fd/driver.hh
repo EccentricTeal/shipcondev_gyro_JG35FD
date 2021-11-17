@@ -5,6 +5,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include "hardware_communication_lib/serialcom.hh"
 
+//ROS Service
+#include "shipcondev_gyro_jg35fd/srv/control_output.hpp"
+#include "shipcondev_gyro_jg35fd/srv/calibrate_gyro.hpp"
+#include "shipcondev_gyro_jg35fd/srv/control_calculate.hpp"
+#include "shipcondev_gyro_jg35fd/srv/reset_angle.hpp"
+#include "shipcondev_gyro_jg35fd/srv/set_analog_range.hpp"
+
 //STL
 #include <memory>
 #include <string>
@@ -44,6 +51,7 @@ namespace shipcon::device
 
     /* Private Methods */
     private:
+      //Serial Communication
       bool initSerial( void );
       bool startSerial( void );
       void callback_sendSerial( const boost::system::error_code& ec, std::size_t sendsize );
@@ -52,10 +60,50 @@ namespace shipcon::device
       void updateData( void );
       double deg2rad( double deg ){ return deg / 360.0 * M_PI * 2.0; };
 
+      //ROS Service
+      void callback_srv_control_output(
+        const std::shared_ptr<rmw_request_id_t> req_header,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Request> req,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Response> res
+      );
+      void callback_srv_calibrate_gyro(
+        const std::shared_ptr<rmw_request_id_t> req_header,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Request> req,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Response> res
+      );
+      void callback_srv_control_calculate(
+        const std::shared_ptr<rmw_request_id_t> req_header,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlCalculate_Request> req,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlCalculate_Response> res
+      );
+      void callback_srv_reset_angle(
+        const std::shared_ptr<rmw_request_id_t> req_header,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ResetAngle_Request> req,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ResetAngle_Response> res
+      );
+      void callback_srv_set_analog_range(
+        const std::shared_ptr<rmw_request_id_t> req_header,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::SetAnalogRange_Request> req,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::SetAnalogRange_Response> res
+      );
+
     /* Private Member Objects*/
     private:
-      //Communication
+      //Serial Communication
       std::unique_ptr<hwcomlib::SerialCom> serialif_;
+      
+      //ROS Service
+      rclcpp::Service<shipcondev_gyro_jg35fd::srv::ControlOutput>::SharedPtr srv_control_output_;
+      rclcpp::Service<shipcondev_gyro_jg35fd::srv::CalibrateGyro>::SharedPtr srv_calibrate_gyro_;
+      rclcpp::Service<shipcondev_gyro_jg35fd::srv::ControlCalculate>::SharedPtr srv_control_calculate_;
+      rclcpp::Service<shipcondev_gyro_jg35fd::srv::ResetAngle>::SharedPtr srv_reset_angle_;
+      rclcpp::Service<shipcondev_gyro_jg35fd::srv::SetAnalogRange>::SharedPtr srv_set_analog_range_;
+      std::string srvname_control_output_;
+      std::string srvname_calibrate_gyro_;
+      std::string srvname_control_calculate_;
+      std::string srvname_reset_angle_;
+      std::string srvname_set_analog_range_;
+      
       //Buffers
       boost::asio::streambuf recv_buffer_;
       std::vector<unsigned char> data_buffer_;

@@ -18,9 +18,25 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(hardware_communication_lib REQUIRED)
 find_package(Boost REQUIRED COMPONENTS regex )
+
+# Service Generation
+set(srv_files
+  "srv/CalibrateGyro.srv"
+  "srv/ControlCalculate.srv"
+  "srv/ControlOutput.srv"
+  "srv/ResetAngle.srv"
+  "srv/SetAnalogRange.srv"
+)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${srv_files}
+  DEPENDENCIES std_msgs
+)
+
 
 add_executable(node
   src/driver.cc
