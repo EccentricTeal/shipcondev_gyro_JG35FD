@@ -26,7 +26,7 @@ find_package(Boost REQUIRED COMPONENTS regex )
 
 # Service Generation
 set(srv_files
-  "srv/CalibrateGyro.srv"
+  "srv/CalibrateBiasDrift.srv"
   "srv/ControlCalculate.srv"
   "srv/ControlOutput.srv"
   "srv/ResetAngle.srv"

@@ -6,22 +6,27 @@ namespace shipcon::device
   rclcpp::Node( node_name, name_space )
   {
     //init ROS Service
+    srvname_control_output_ = declare_parameter( "servicename/control_output", "control_output" );
     srv_control_output_ = create_service<shipcondev_gyro_jg35fd::srv::ControlOutput>(
       srvname_control_output_,
       &GyroJaeJG35FD::callback_srv_control_output
     );
-    srv_calibrate_gyro_ = create_service<shipcondev_gyro_jg35fd::srv::CalibrateGyro>(
-      srvname_calibrate_gyro_,
-      &GyroJaeJG35FD::callback_srv_calibrate_gyro
+    srvname_calibrate_bias_drift_ = declare_parameter( "servicename/calibrate_bias_drift", "calibrate_bias_drift" );
+    srv_calibrate_bias_drift_ = create_service<shipcondev_gyro_jg35fd::srv::CalibrateBiasDrift>(
+      srvname_calibrate_bias_drift_,
+      &GyroJaeJG35FD::callback_srv_calibrate_bias_drift
     );
+    srvname_control_calculate_ = declare_parameter( "servicename/control_calculate", "control_calculate" );
     srv_control_calculate_ = create_service<shipcondev_gyro_jg35fd::srv::ControlCalculate>(
       srvname_control_calculate_,
       &GyroJaeJG35FD::callback_srv_control_calculate
     );
+    srvname_reset_angle_ = declare_parameter( "servicename/reset_angle", "reset_angle" );
     srv_reset_angle_ = create_service<shipcondev_gyro_jg35fd::srv::ResetAngle>(
       srvname_reset_angle_,
       &GyroJaeJG35FD::callback_srv_reset_angle
     );
+    srvname_set_analog_range_ = declare_parameter( "servicename/set_analog_range", "set_analog_rage" );
     srv_set_analog_range_ = create_service<shipcondev_gyro_jg35fd::srv::SetAnalogRange>(
       srvname_set_analog_range_,
       &GyroJaeJG35FD::callback_srv_set_analog_range
@@ -33,22 +38,6 @@ namespace shipcon::device
     //init data variables
     data_buffer_.clear();
     yaw_angle_ = 0.0;
-
-    auto send_buffer_ = std::make_shared<std::vector<unsigned char>>();
-    send_buffer_->push_back(0x02);
-    send_buffer_->push_back(0x83);
-    send_buffer_->push_back(0x35);
-    send_buffer_->push_back(0xb8);
-    send_buffer_->push_back(0x0d);
-    serialif_->dispatchSend(
-      send_buffer_,
-      std::bind(
-        &GyroJaeJG35FD::callback_sendSerial,
-        this,
-        std::placeholders::_1,
-        std::placeholders::_2
-      )
-    );
 
     serialif_->dispatchRecvUntil(
       recv_buffer_,
@@ -355,6 +344,53 @@ namespace shipcon::device
   }
 
 
+  void GyroJaeJG35FD::configureOutput( TxInterval interval, OutputMode mode )
+  {
+    uint8_t checksum = static_cast<uint8_t>( mode + interval );
+
+    auto send_buffer_ = std::make_shared<std::vector<unsigned char>>();
+    send_buffer_->push_back( 0x02 );
+    send_buffer_->push_back( mode );
+    send_buffer_->push_back( interval );
+    send_buffer_->push_back( checksum );
+    send_buffer_->push_back( 0x0d );
+
+    serialif_->dispatchSend(
+      send_buffer_,
+      std::bind(
+        &GyroJaeJG35FD::callback_sendSerial,
+        this,
+        std::placeholders::_1,
+        std::placeholders::_2
+      )
+    );    
+  }
+
+
+  void GyroJaeJG35FD::resetAngle( double new_angle )
+  {
+    int16_t angle = static_cast<int16_t>( new_angle * 32767.0 / 180.0 );
+    uint8_t checksum = static_cast<uint8_t>( 0x85 + interval );
+
+    auto send_buffer_ = std::make_shared<std::vector<unsigned char>>();
+    send_buffer_->push_back( 0x02 );
+    send_buffer_->push_back( 0x85 );
+    send_buffer_->push_back( interval );
+    send_buffer_->push_back( checksum );
+    send_buffer_->push_back( 0x0d );
+
+    serialif_->dispatchSend(
+      send_buffer_,
+      std::bind(
+        &GyroJaeJG35FD::callback_sendSerial,
+        this,
+        std::placeholders::_1,
+        std::placeholders::_2
+      )
+    );    
+  }
+
+
   void GyroJaeJG35FD::callback_srv_control_output(
     const std::shared_ptr<rmw_request_id_t> req_header,
     const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Request> req,
@@ -365,10 +401,10 @@ namespace shipcon::device
   }
 
 
-  void GyroJaeJG35FD::callback_srv_calibrate_gyro(
+  void GyroJaeJG35FD::callback_srv_calibrate_bias_drift(
     const std::shared_ptr<rmw_request_id_t> req_header,
-    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Request> req,
-    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Response> res
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateBiasDrift_Request> req,
+    const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateBiasDrift_Response> res
   )
   {
 

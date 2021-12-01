@@ -7,7 +7,7 @@
 
 //ROS Service
 #include "shipcondev_gyro_jg35fd/srv/control_output.hpp"
-#include "shipcondev_gyro_jg35fd/srv/calibrate_gyro.hpp"
+#include "shipcondev_gyro_jg35fd/srv/calibrate_bias_drift.hpp"
 #include "shipcondev_gyro_jg35fd/srv/control_calculate.hpp"
 #include "shipcondev_gyro_jg35fd/srv/reset_angle.hpp"
 #include "shipcondev_gyro_jg35fd/srv/set_analog_range.hpp"
@@ -42,6 +42,27 @@ namespace shipcon::device
         _1000ms = 0x38,
         stop = 0x39
       };
+      enum OutputMode{
+        yaw_angle = 0x81,
+        yaw_rate = 0x82,
+        both = 0x83
+      };
+      enum AnalogAngleRange{
+        current = 0x30,
+        _10deg = 0x31,
+        _20deg = 0x32,
+        _45deg = 0x33,
+        _90deg = 0x34,
+        _180deg = 0x35
+      };
+      enum AnalogYawrateRange{
+        current = 0x30,
+        _10deg = 0x31,
+        _20deg = 0x32,
+        _50deg = 0x33,
+        _90deg = 0x34,
+        _200deg = 0x35
+      };
       boost::regex REGEX_CONDITION_HEADER = boost::regex("\x02[\x81-\x84]");
 
     /* Constructor, Destructor */
@@ -60,16 +81,23 @@ namespace shipcon::device
       void updateData( void );
       double deg2rad( double deg ){ return deg / 360.0 * M_PI * 2.0; };
 
+      //Gyro Applications
+      void configureOutput( TxInterval interval, OutputMode mode );
+      void resetAngle( double new_angle );
+      bool configureInternalCalculator( bool isEnable );
+      AnalogAngleRange setAnalogAngleRange( AnalogAngleRange target );
+      AnalogYawrateRange setAnalogYawrateRange( AnalogYawrateRange target );
+
       //ROS Service
       void callback_srv_control_output(
         const std::shared_ptr<rmw_request_id_t> req_header,
         const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Request> req,
         const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Response> res
       );
-      void callback_srv_calibrate_gyro(
+      void callback_srv_calibrate_bias_drift(
         const std::shared_ptr<rmw_request_id_t> req_header,
-        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Request> req,
-        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateGyro_Response> res
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateBiasDrift_Request> req,
+        const std::shared_ptr<shipcondev_gyro_jg35fd::srv::CalibrateBiasDrift_Response> res
       );
       void callback_srv_control_calculate(
         const std::shared_ptr<rmw_request_id_t> req_header,
@@ -94,12 +122,12 @@ namespace shipcon::device
       
       //ROS Service
       rclcpp::Service<shipcondev_gyro_jg35fd::srv::ControlOutput>::SharedPtr srv_control_output_;
-      rclcpp::Service<shipcondev_gyro_jg35fd::srv::CalibrateGyro>::SharedPtr srv_calibrate_gyro_;
+      rclcpp::Service<shipcondev_gyro_jg35fd::srv::CalibrateBiasDrift>::SharedPtr srv_calibrate_bias_drift_;
       rclcpp::Service<shipcondev_gyro_jg35fd::srv::ControlCalculate>::SharedPtr srv_control_calculate_;
       rclcpp::Service<shipcondev_gyro_jg35fd::srv::ResetAngle>::SharedPtr srv_reset_angle_;
       rclcpp::Service<shipcondev_gyro_jg35fd::srv::SetAnalogRange>::SharedPtr srv_set_analog_range_;
       std::string srvname_control_output_;
-      std::string srvname_calibrate_gyro_;
+      std::string srvname_calibrate_bias_drift_;
       std::string srvname_control_calculate_;
       std::string srvname_reset_angle_;
       std::string srvname_set_analog_range_;
