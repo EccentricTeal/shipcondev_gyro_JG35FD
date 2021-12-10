@@ -248,7 +248,7 @@ namespace shipcon::device
                 std::placeholders::_1,
                 std::placeholders::_2,
                 2
-              )
+              )"/media/suisei/Users/Suisei/data/projects/shipcon2/ros/src/hardware_communication_lib"
             );
           }
           else if( *( std::next( itr ) ) == 0x83 )

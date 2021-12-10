@@ -21,6 +21,7 @@ find_package(rclcpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(shipcondev_gyro_jg35fd REQUIRED)
 find_package(hardware_communication_lib REQUIRED)
 find_package(Boost REQUIRED COMPONENTS regex )
 
@@ -32,6 +33,7 @@ set(srv_files
   "srv/ResetAngle.srv"
   "srv/SetAnalogRange.srv"
 )
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${srv_files}
   DEPENDENCIES std_msgs
@@ -45,6 +47,7 @@ add_executable(node
 ament_target_dependencies(node
   rclcpp
   hardware_communication_lib
+  shipcondev_gyro_jg35fd
   Boost
 )
 target_include_directories(node
@@ -52,7 +55,6 @@ target_include_directories(node
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-
 install(
   TARGETS node
   DESTINATION lib/${PROJECT_NAME}
