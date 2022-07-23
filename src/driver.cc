@@ -135,7 +135,7 @@ namespace shipcon::device
       );
     }
     //If next 0x02 data is not 0x81-0x84, this 0x02 is not indicator of STX of header
-    //So, read until header again. This case is only in an error.
+    //So, read until header again. System will enter to this case only when it face error.
     else
     {
       serialif_->dispatchRecvUntil(
@@ -248,7 +248,7 @@ namespace shipcon::device
                 std::placeholders::_1,
                 std::placeholders::_2,
                 2
-              )"/media/suisei/Users/Suisei/data/projects/shipcon2/ros/src/hardware_communication_lib"
+              )
             );
           }
           else if( *( std::next( itr ) ) == 0x83 )
@@ -350,8 +350,8 @@ namespace shipcon::device
 
     auto send_buffer_ = std::make_shared<std::vector<unsigned char>>();
     send_buffer_->push_back( 0x02 );
-    send_buffer_->push_back( mode );
-    send_buffer_->push_back( interval );
+    send_buffer_->push_back( static_cast<uint8_t>( mode ) );
+    send_buffer_->push_back( static_cast<uint8_t>( interval ) );
     send_buffer_->push_back( checksum );
     send_buffer_->push_back( 0x0d );
 
@@ -369,7 +369,7 @@ namespace shipcon::device
 
   void GyroJaeJG35FD::resetAngle( double new_angle )
   {
-    int16_t angle = static_cast<int16_t>( new_angle * 32767.0 / 180.0 );
+    /* int16_t angle = static_cast<int16_t>( new_angle * 32767.0 / 180.0 );
     uint8_t checksum = static_cast<uint8_t>( 0x85 + interval );
 
     auto send_buffer_ = std::make_shared<std::vector<unsigned char>>();
@@ -387,7 +387,7 @@ namespace shipcon::device
         std::placeholders::_1,
         std::placeholders::_2
       )
-    );    
+    ); */   
   }
 
 
@@ -397,6 +397,33 @@ namespace shipcon::device
     const std::shared_ptr<shipcondev_gyro_jg35fd::srv::ControlOutput_Response> res
   )
   {
+    shipcondev_gyro_jg35fd::srv::ControlCalculate_Response resdata;
+    TxInterval outint;
+    OutputMode outmode;
+
+    switch( req -> output )
+    {
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_STOP: outint = TxInterval::stop;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_ONE_TIME: outint = TxInterval::once;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_CONTINUE_20MS: outint = TxInterval::_20ms;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_CONTINUE_50MS: outint = TxInterval::_50ms;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_CONTINUE_100MS: outint = TxInterval::_100ms;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_CONTINUE_200MS: outint = TxInterval::_200ms;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_CONTINUE_250MS: outint = TxInterval::_250ms;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_CONTINUE_500MS: outint = TxInterval::_500ms;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::MODE_CONTINUE_1000MS: outint = TxInterval::_1000ms;
+      default: outint = TxInterval::_100ms;
+    }
+
+    switch( req -> mode )
+    {
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::OUTPUT_YAW: outmode = OutputMode::yaw_angle;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::OUTPUT_YAWRATE: outmode = OutputMode::yaw_rate;
+      case shipcondev_gyro_jg35fd::srv::ControlOutput_Request::OUTPUT_BOTH: outmode = OutputMode::both;
+      default: outmode = OutputMode::both;
+    }
+
+    configureOutput( outint , outmode );
 
   }
 

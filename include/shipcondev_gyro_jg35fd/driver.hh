@@ -31,7 +31,7 @@ namespace shipcon::device
     /* Constants */
     private:
       const int BAUDRATE = 9600;
-      enum class TxInterval{
+      enum TxInterval{
         once = 0x30,
         _20ms = 0x32,
         _50ms = 0x33,
@@ -42,12 +42,12 @@ namespace shipcon::device
         _1000ms = 0x38,
         stop = 0x39
       };
-      enum class OutputMode{
+      enum OutputMode{
         yaw_angle = 0x81,
         yaw_rate = 0x82,
         both = 0x83
       };
-      enum class AnalogAngleRange{
+      enum AnalogAngleRange{
         current = 0x30,
         _10deg = 0x31,
         _20deg = 0x32,
@@ -55,7 +55,7 @@ namespace shipcon::device
         _90deg = 0x34,
         _180deg = 0x35
       };
-      enum class AnalogYawrateRange{
+      enum AnalogYawrateRange{
         current = 0x30,
         _10deg = 0x31,
         _20deg = 0x32,
